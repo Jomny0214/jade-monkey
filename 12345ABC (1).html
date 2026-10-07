@@ -214,7 +214,7 @@ const H=8+4*IN, T=4*IN, DH=6+8*IN;
 function wallZ(x,z0,z1){box(T,H,z1-z0,M.board,x,H/2,(z0+z1)/2);}
 function lintelZ(x,z0,z1){box(T,H-DH,z1-z0,M.board,x,DH+(H-DH)/2,(z0+z1)/2);}
 const EX=9.09+T/2;                                     // east partition centreline (plan x 9'-1" to 9'-5")
-wallZ(EX,0,19.9); lintelZ(EX,19.9,22.9); wallZ(EX,22.9,27.0); lintelZ(EX,27.0,30.0); wallZ(EX,30.0,31.6);
+wallZ(EX,0,0.17); lintelZ(EX,0.17,3.17); wallZ(EX,3.17,27.0); lintelZ(EX,27.0,30.0); wallZ(EX,30.0,31.6);
 box(9.09,H,T,M.board,4.545,H/2,23.25+T/2);            // cross wall smoking / storage
 box(9.42,H,T,M.board,4.71,H/2,31.27+T/2);             // storage south wall
 // doors 3'-0" x 6'-8"
@@ -222,8 +222,8 @@ function door(z0,z1,slate){const g=new THREE.Group();scene.add(g);const w=z1-z0;
   box(0.15,DH,w-0.05,slateDoor,EX+0.02,DH/2,(z0+z1)/2,g);
   box(0.03,DH*0.62,w*0.55,slateInset,EX+0.11,DH*0.52,(z0+z1)/2,g);
   box(0.08,0.06,0.45,M.handle,EX+0.18,3.4,z0+0.35,g);}
-door(19.9,22.9); door(27.0,30.0);
-(()=>{const z0=1.0,z1=19.2,y0=0.5,y1=7.3,x=EX+T/2+0.12;   // living wall
+door(0.17,3.17); door(27.0,30.0);   // smoking-room door jammed to the north corner (2" jamb); storage door
+(()=>{const z0=3.7,z1=19.2,y0=0.5,y1=7.3,x=EX+T/2+0.12;   // living wall (starts after the smoking-room door)
   const lw=new THREE.Mesh(new THREE.PlaneGeometry(z1-z0,y1-y0),M.leaves);lw.rotation.y=Math.PI/2;lw.position.set(x,(y0+y1)/2,(z0+z1)/2);scene.add(lw);
   box(0.1,0.25,z1-z0+1.2,M.lattice,x-0.04,y1+0.12,(z0+z1)/2);box(0.1,0.25,z1-z0+1.2,M.lattice,x-0.04,y0-0.12,(z0+z1)/2);
   box(0.1,y1-y0+0.5,0.6,M.lattice,x-0.04,(y0+y1)/2,z0-0.3);box(0.1,y1-y0+0.5,0.6,M.lattice,x-0.04,(y0+y1)/2,z1+0.3);
@@ -458,7 +458,7 @@ function table(x,z,size,rot){const g=new THREE.Group();g.position.set(x,0,z);g.r
     table(cx,z,2.0,th);
     chair(cx-ux*1.6,z-uz*1.6,th);                            // chair north of table, facing south
     chair(cx+ux*1.6,z+uz*1.6,th+Math.PI);});                 // chair south of table, facing north
-  [2.6,7.4].forEach(z=>{const cx=EX+T/2+1.35;              // against the partition
+  [5.8,10.6].forEach(z=>{const cx=EX+T/2+1.35;             // against the living wall, right after the smoking-room door
     table(cx,z,2.0,0);chair(cx,z-1.6,0);chair(cx,z+1.6,Math.PI);});
   [[2.5,57.5],[9.5,57.5],[-7.5,65],[0,65],[7.5,65]].forEach(([x,z])=>{table(x,z,2.5,0);
     chair(x,z-1.75,Math.PI);chair(x,z+1.75,0);chair(x-1.75,z,-Math.PI/2);chair(x+1.75,z,Math.PI/2);});
@@ -492,7 +492,7 @@ sail([[0.2,14.0,51.3],[13.6,13.0,58.1],[-7.4,13.6,58.8]]);    // north sail
 sail([[-7.4,14.2,59.0],[13.6,13.8,58.4],[11.6,12.8,70.2]]);   // east sail
 sail([[-7.6,13.2,59.2],[11.4,13.6,70.4],[-15.0,12.9,70.4]]);  // south-west sail
 
-// ---------- smoking room: 8 slot machines (4 on the east wall, 4 on the west wall), 33" spacing, 24" deep cabinets + stools = 40" per side, 29" clear aisle ----------
+// ---------- smoking room: 10 slot machines (6 on the east wall, 4 on the west wall), 33" spacing, 24" deep cabinets + stools = 40" per side, 29" clear aisle ----------
 const slots=new THREE.Group();scene.add(slots);
 const cabMat=new THREE.MeshStandardMaterial({color:0x1a1a1f,roughness:.35,metalness:.5});
 const trimMat=new THREE.MeshStandardMaterial({color:0xb8952f,roughness:.3,metalness:.9});
@@ -514,7 +514,7 @@ function slot(wx,z,face,seed){                              // wx: wall face x; 
   const st=new THREE.Group();st.position.set(wx+face*(2.0+0.67),0,z);slots.add(st);
   const seat=new THREE.Mesh(new THREE.CylinderGeometry(0.62,0.62,0.18,24),new THREE.MeshStandardMaterial({color:0x5a1620,roughness:.6}));seat.position.y=2.25;st.add(seat);
   box(0.12,2.2,0.12,M.black,0,1.1,0,st);box(1.0,0.06,1.0,M.black,0,0.03,0,st);}
-[9.775,12.525,15.275,18.025].forEach((z,i)=>slot(9.09,z,-1,30+i));      // east wall: bank of 4, pushed south to 6" from the smoking-room door; north end left clear for a new door
+[7.625,10.375,13.125,15.875,18.625,21.375].forEach((z,i)=>slot(9.09,z,-1,30+i));      // east wall: bank of 6, pushed south to 7" from the cross wall; 3'-2" clear inside the door
 [12.375,15.125,17.875,20.625].forEach((z,i)=>slot(0,z,1,50+i));                      // west wall (existing block wall)
 
 // ---------- camera views ----------
