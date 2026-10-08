@@ -54,6 +54,8 @@ button:focus-visible{outline:2px solid var(--jade);outline-offset:2px}
       <button id="v-bartender">Bartender's view</button>
       <button id="v-smoking">Smoking area</button>
       <button id="v-tv">TV wall</button>
+      <button id="v-wormN">Worm's eye: street corner</button>
+      <button id="v-wormS">Worm's eye: south corner</button>
       <button id="v-roof">Roof framing</button>
     </div>
     <div class="row" role="group" aria-label="Show or hide">
@@ -730,7 +732,9 @@ const views={
   bar:{p:[15,6,30],t:[3,3,43]},
   bartender:{p:[1.7,5.0,43.75],t:[2.3,4.93,43.75],fov:75,head:true,scan:true},
   smoking:{p:[7.3,5.3,22],t:[3.6,4.4,2]},
-  tv:{p:[4.4,5.5,70.0],t:[-7.6,6.2,58.44]},
+  tv:{p:[4.4,5.5,70.0],t:[-7.6,6.2,58.44],low:true},
+  wormN:{p:[19.6,0.5,2.0],t:[9,12,28],fov:80,low:true},
+  wormS:{p:[10.2,0.5,68.9],t:[3,12,40],fov:80,low:true},
   roof:{p:[24,24,6],t:[4,8,30]},
 };
 let anim=null, scan=null;
@@ -743,7 +747,8 @@ let tour=null;
 function tourStep(now){const T=(now-tour.s)/1000,n=TOUR.length;if(T>=TOUR[n-1][0]){tour=null;return;}
   let i=0;while(i<n-2&&T>TOUR[i+1][0])i++;const f=(T-TOUR[i][0])/(TOUR[i+1][0]-TOUR[i][0]),u=(i+f)/(n-1);
   camera.position.copy(tourP.getPoint(u));controls.target.copy(tourT.getPoint(u));}
-function go(name){const v=views[name];scan=null;tour=null;const p0=camera.position.clone(),t0=controls.target.clone();
+function go(name){const v=views[name];scan=null;tour=null;controls.maxPolarAngle=(v.head||v.low)?Math.PI*0.97:Math.PI*0.495;   // low views may look up
+const p0=camera.position.clone(),t0=controls.target.clone();
   const p1=new THREE.Vector3(...v.p),t1=new THREE.Vector3(...v.t);
   document.querySelectorAll('[id^="v-"]').forEach(b=>b.setAttribute('aria-pressed',b.id==='v-'+name));
   const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
