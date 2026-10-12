@@ -32,6 +32,10 @@ button[aria-pressed="true"]{background:var(--jade);border-color:var(--jade);colo
 button:focus-visible{outline:2px solid var(--jade);outline-offset:2px}
 .tog{font-family:var(--mono);font-size:.72rem}
 .hint{position:absolute;left:16px;bottom:10px;font-family:var(--mono);font-size:.68rem;color:var(--muted);pointer-events:none;background:color-mix(in srgb,var(--ink) 70%,transparent);padding:4px 8px;border-radius:4px}
+#dpad{position:absolute;right:16px;bottom:16px;display:grid;grid-template-columns:repeat(3,56px);grid-template-rows:repeat(3,56px);gap:6px;touch-action:none;user-select:none;-webkit-user-select:none}
+#dpad[hidden]{display:none}
+#dpad button{width:56px;height:56px;padding:0;border-radius:50%;font-size:1.25rem;line-height:1;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--ink) 75%,transparent);border-color:var(--jade);color:var(--jade);-webkit-tap-highlight-color:transparent}
+#dpad button.on{background:var(--jade);color:var(--ink)}
 .scale{position:absolute;right:16px;top:10px;font-family:var(--mono);font-size:.68rem;color:var(--muted);text-align:right;pointer-events:none;line-height:1.5}
 </style>
 
@@ -44,12 +48,19 @@ button:focus-visible{outline:2px solid var(--jade);outline-offset:2px}
     <canvas id="c" aria-label="3D model of the Jade Monkey lounge"></canvas>
     <div class="scale">Built to drawing dimensions<br>Roof 50'-3" x 11'-0" · Walls 8'-4"</div>
     <div class="hint" id="hint">Drag to orbit · pinch to zoom</div>
+    <div id="dpad" hidden aria-label="Walk controls">
+      <button data-d="f" aria-label="Walk forward" style="grid-area:1/2">&#9650;</button>
+      <button data-d="l" aria-label="Step left" style="grid-area:2/1">&#9664;</button>
+      <button data-d="r" aria-label="Step right" style="grid-area:2/3">&#9654;</button>
+      <button data-d="b" aria-label="Walk back" style="grid-area:3/2">&#9660;</button>
+    </div>
   </div>
   <div class="dock">
     <div class="row" role="group" aria-label="Camera views">
       <button id="v-overview" aria-pressed="true">Overview</button>
       <button id="v-street">From the street</button>
       <button id="v-walk">Walkthrough</button>
+      <button id="v-roam">Walk around (arrows)</button>
       <button id="v-bar">Lounge bar</button>
       <button id="v-bartender">Bartender's view</button>
       <button id="v-fenceN">Fence: north end</button>
@@ -57,6 +68,7 @@ button:focus-visible{outline:2px solid var(--jade);outline-offset:2px}
       <button id="v-fenceS">Fence: south corner</button>
       <button id="v-smoking">Smoking room</button>
       <button id="v-storage">Storage room</button>
+      <button id="v-nstair">North stairs</button>
       <button id="v-tv">TV wall</button>
       <button id="v-wormN">Worm's eye: street corner</button>
       <button id="v-wormS">Worm's eye: south corner</button>
@@ -64,10 +76,14 @@ button:focus-visible{outline:2px solid var(--jade);outline-offset:2px}
     </div>
     <div class="row" role="group" aria-label="Show or hide">
       <button class="tog" id="t-roof" aria-pressed="true">Polycarbonate roof</button>
-      <button class="tog" id="t-wall" aria-pressed="true">CNC screen wall</button>
+      <button class="tog" id="t-wall" aria-pressed="true">CNC screen wall (Alucobond)</button>
+      <button class="tog" id="t-fplant" aria-pressed="true">Fence planters</button>
+      <button class="tog" id="t-nstair" aria-pressed="true">North stairs</button>
+      <button class="tog" id="t-signs" aria-pressed="true">Signage</button>
       <button class="tog" id="t-club" aria-pressed="true">Club building</button>
       <button class="tog" id="t-string" aria-pressed="true">String lights</button>
       <button class="tog" id="t-furn" aria-pressed="true">Tables &amp; chairs</button>
+      <button class="tog" id="t-busy" aria-pressed="false">Busy (full house)</button>
       <button class="tog" id="t-sails" aria-pressed="true">Shade sails</button>
       <button class="tog" id="t-slots" aria-pressed="true">Slot machines</button>
       <button class="tog" id="t-tv" aria-pressed="true">TV screens</button>
@@ -156,7 +172,7 @@ const M={
   conc:new THREE.MeshStandardMaterial({map:concTex,roughness:1}),
   steel:new THREE.MeshStandardMaterial({color:0x161616,roughness:.45,metalness:.6}),
   alu:new THREE.MeshStandardMaterial({color:0xbfc5c8,roughness:.35,metalness:.85}),
-  poly:new THREE.MeshPhysicalMaterial({color:0xd9efe6,map:polyTex,transparent:true,opacity:.38,roughness:.15,metalness:0,side:THREE.DoubleSide,depthWrite:false}),
+  poly:new THREE.MeshPhysicalMaterial({color:0x161a1a,map:polyTex,transparent:true,opacity:.97,roughness:.2,metalness:0,side:THREE.DoubleSide,depthWrite:false}),
   pvc:new THREE.MeshStandardMaterial({color:0xf3f3f0,roughness:.5}),
   door:new THREE.MeshStandardMaterial({color:0xf3f1ec,roughness:.5}),
   doorInset:new THREE.MeshStandardMaterial({color:0xe9e6df,roughness:.5}),
@@ -202,7 +218,7 @@ box(0.67,11,8.6,M.block,2.665,5.5,4.3);               // north leg at x=3
 (()=>{const a=new THREE.Vector2(0,10.1),b=new THREE.Vector2(3,8.6);const len=a.distanceTo(b);
   const m=box(0.67,11,len+0.6,M.block,(a.x+b.x)/2-0.3,5.5,(a.y+b.y)/2);m.rotation.y=Math.atan2(b.x-a.x,b.y-a.y);})();
 box(1.27,11,0.67,M.block,2.965,5.5,-0.335);            // north wall, west of the door (runs into the club building)
-box(5.0,11,0.67,M.block,9.1,5.5,-0.335);                // north wall, east of the door
+box(2.82,11,0.67,M.block,8.01,5.5,-0.335);              // north wall, east of the door - stops in line with the north stairs (x 9'-5")
 box(3.0,11-6.667,0.67,M.block,5.1,6.667+(11-6.667)/2,-0.335);    // lintel over the door
 box(2.95,6.667,0.15,slateDoor,5.1,6.667/2,-0.12);              // 3'-0" x 6'-8" slate door (exit at the north end of the smoking room)
 box(1.6,6.667*0.6,0.03,slateInset,5.1,6.667*0.55,-0.03);
@@ -216,7 +232,7 @@ for(let i=0;i<30;i++){const sph=new THREE.Mesh(new THREE.SphereGeometry(0.6+R()*
 // ---------- timber deck (with the stair well cut out) ----------
 (()=>{const s=holed([[3,0],[21.9,0],[11.6,70.53],[CH_B[0],70.53],[CH_B[0],CH_B[1]],[CH_A[0],CH_A[1]],[0,10.1],[3,8.6]],PIT);
   const g=new THREE.ExtrudeGeometry(s,{depth:0.15,bevelEnabled:false});g.rotateX(Math.PI/2);
-  const uv=g.attributes.uv;for(let i=0;i<uv.count;i++){uv.setXY(i,uv.getX(i)/6,uv.getY(i)/4);}
+  const uv=g.attributes.uv;for(let i=0;i<uv.count;i++){uv.setXY(i,uv.getY(i)/6,uv.getX(i)/4);}   // planks run north-south
   const m=new THREE.Mesh(g,M.wood);m.receiveShadow=true;scene.add(m);})();
 
 // ---------- 24"x24" off-white floor tiles: smoking room, storage room and inside the bar; slate-brown tile to the stair treads and risers ----------
@@ -542,21 +558,21 @@ const jmMat=new THREE.MeshStandardMaterial({color:0xffffff,map:jmTex,emissive:0x
   const sth=new THREE.Mesh(new THREE.PlaneGeometry(10.6,H-0.2),jmMat);sth.position.set((0.3+11.2)/2,y0+H/2,ZS+0.13);signs.add(sth);
   [[12.6,(z0+ZS)/2],[5.8,ZS+1.4]].forEach(([x,z])=>{const gl=new THREE.PointLight(0xff8a2a,0,14,2);gl.position.set(x,y0+H/2,z);signs.add(gl);jmGlow.push(gl);});})();
 function setSigns(on){signs.visible=on;tvSet.position.y=on?-0.5:0;}   // TVs drop from 4'-6" to 4'-0" under the top lettering
-setSigns(true);   // signage is permanent
+setSigns(true);   // signage on by default; the Signage button takes it all off (fascia sign, TV surround lettering, logo sign)
 let tvLast=0;
 function updateTVs(now){if(!tvs.visible||now-tvLast<50)return;tvLast=now;const t=now/1000;tvScreens.forEach(s=>{s.draw(s.g,t);s.tex.needsUpdate=true;});}
 
 // ---------- bar lock-up: lift-up counter flap + gate, and aluminium roller shutters that close onto the bar top ----------
 // east shutter on the line of the partition's end post (x 8'-10"), south shutter over the return (z 49'-7"); new 4"x4" RHS post at the south-east corner
 const shut=new THREE.Group();scene.add(shut);
-const SX=8.83, SZ=49.6, SY0=CH, HT=8.0, HB_Y=HT-T, BOXH=0.75, SY1=HB_Y-BOXH, WX=0.45;     // headers top out at 8'-0" (clear of the gutter); curtain from the box (6'-11") to the counter top (3'-6")
+const SX=8.83, SZ=49.6, SY0=CH, HT=8.0, HB_Y=HT-T, BOXH=0.75, SY1=HB_Y-BOXH, WX=0.56;     // headers top out at 8'-0" (clear of the gutter); curtain from the box (6'-11") to the counter top (3'-6")
 box(T,HT,T,M.black,SX,HT/2,49.585,shut);                                                    // corner post, floor to header, through the counter top
 box(T,T,49.75-37.7,M.black,SX,HT-T/2,(37.7+49.75)/2,shut);                                 // east header: partition end post to corner post
 box(SX,T,T,M.black,SX/2,HT-T/2,SZ,shut);                                                  // south header: block wall to corner post
 const hoodMat=new THREE.MeshStandardMaterial({color:0xb9bec2,roughness:.4,metalness:.8}),railMat=new THREE.MeshStandardMaterial({color:0xa9aeb2,roughness:.4,metalness:.8});
 box(BOXH,BOXH,49.42-37.7,hoodMat,SX-BOXH/2+0.08,HB_Y-BOXH/2,(37.7+49.42)/2,shut);        // east coil box (inside the bar)
-box(SX-T/2-WX,BOXH,0.6,hoodMat,(WX+SX-T/2)/2,HB_Y-BOXH/2,SZ+0.22,shut);                 // south coil box (outside, clear of the back-bar; starts 5" off the wall to clear the downpipe)
-box(WX,HB_Y-SY0,0.06,railMat,WX/2,SY0+(HB_Y-SY0)/2,SZ,shut);                              // fixed aluminium filler between wall and shutter
+box(SX-T/2-WX,BOXH,0.6,hoodMat,(WX+SX-T/2)/2,HB_Y-BOXH/2,SZ+0.22,shut);                 // south coil box (outside, clear of the back-bar; starts 6 3/4" off the wall to clear the 6" square downpipe)
+box(WX,HB_Y-0.25-SY0,0.06,railMat,WX/2,SY0+(HB_Y-0.25-SY0)/2,SZ,shut);                              // fixed aluminium filler between wall and shutter
 const RH=SY1-SY0;
 box(0.2,RH,0.17,railMat,SX,SY0+RH/2,37.7+0.085,shut);box(0.2,RH,0.17,railMat,SX,SY0+RH/2,49.42-0.085,shut);   // east guide rails
 box(0.17,RH,0.2,railMat,WX+0.085,SY0+RH/2,SZ,shut);box(0.17,RH,0.2,railMat,SX-T/2-0.085,SY0+RH/2,SZ,shut);    // south guide rails
@@ -589,25 +605,48 @@ setShutter(0);
 const roof=new THREE.Group();scene.add(roof);
 const slope=Math.tan(3.57*Math.PI/180);
 const beamBot=x=>8.1+slope*x;
-for(let i=0;i<14;i++){const z=11.25+3*i;                  // 14 no. 4"x4" RHS @ 3'-0" c/c, 8'-0" long
-  const m=box(8,T,T,M.steel,4,beamBot(4)+T/2,z,roof);m.rotation.z=Math.atan(slope);
-  const p=box(8,0.035,T,M.alu,4,beamBot(4)+T+0.02,z,roof);p.rotation.z=Math.atan(slope);   // 3/8" aluminium plate
-  box(0.04,10*IN,10*IN,M.steel,0.02,beamBot(0)+T/2,z,roof);                               // 10"x3/8" wall plate
-}
-(()=>{const pts=[[3,0],[11.2,0],[11.2,50.25],[0,50.25],[0,10.1],[3,8.6]];
+// rafters: 17 no. 4"x4" RHS @ 3'-0" c/c, from the wall plate, over the beam (on the bar-frame line), to the fascia
+const EBX=8.83, RX1=10.95, RAF=[3.0,5.25,8.25];for(let i=0;i<14;i++)RAF.push(11.25+3*i);
+RAF.forEach(z=>{const x0=z<8.6?3.0:0,L=RX1-x0,xm=(x0+RX1)/2,c=Math.cos(Math.atan(slope));
+  const m=box(L/c,T,T,M.steel,xm,beamBot(xm)+T/2,z,roof);m.rotation.z=Math.atan(slope);
+  const p=box(L/c,0.035,T,M.alu,xm,beamBot(xm)+T+0.02,z,roof);p.rotation.z=Math.atan(slope);   // 3/8" aluminium plate
+  box(0.04,10*IN,10*IN,M.steel,x0+0.02,beamBot(x0)+T/2,z,roof);});                          // 10"x3/8" wall plate
+const RC_A=11.2-9.42, RC_B=4;   // north-east corner of the canopy curved back to the building line where it meets the north stairs (1'-9" across x 4'-0" along)
+const roofCurve=[];for(let k=0;k<=16;k++){const t=k/16*Math.PI/2;roofCurve.push([9.42+RC_A*Math.sin(t),RC_B-RC_B*Math.cos(t)]);}
+(()=>{const pts=[[3,0],...roofCurve,[11.2,50.25],[0,50.25],[0,10.1],[3,8.6]];
   const s=new THREE.Shape(pts.map(p=>new THREE.Vector2(p[0],p[1])));
   const g=new THREE.ShapeGeometry(s);g.rotateX(Math.PI/2);
   const pos=g.attributes.position;for(let i=0;i<pos.count;i++){pos.setY(i,beamBot(pos.getX(i))+T+0.06);}
   const uv=g.attributes.uv;for(let i=0;i<uv.count;i++){uv.setXY(i,pos.getX(i)/11.2,pos.getZ(i)/50.25);}
   g.computeVertexNormals();const m=new THREE.Mesh(g,M.poly);m.renderOrder=2;roof.add(m);})();
+// 4"x4" RHS beam in two runs: over the bar it sits on the bar-frame line (x 8'-10", packed down onto the bar's east header and lock-up posts);
+// at the storage room it steps forward 5" onto the partition-wall line (x 9'-3") and runs in line with the storage and smoking-room walls to the north wall,
+// on 3 no. 4"x4" RHS posts built into the partition wall. The rafters run on over the beam to the fascia.
+(()=>{const XW=EX,XB=SX,JZ=31.43;                                  // wall line, bar-frame line, step at the post at the storage room's south end
+  const run=(x,z0,z1)=>{const yt=beamBot(x)+0.04;box(T,T,z1-z0,M.steel,x,yt-T/2,(z0+z1)/2,roof);return yt-T;};
+  const botW=run(XW,-0.3,JZ+T/2),botB=run(XB,JZ-T/2,50.25);
+  box(XW-XB+T,T,T,M.steel,(XW+XB)/2,beamBot(XB)+0.04-T/2,JZ,roof);                      // short cross piece at the step, over the post
+  [10.0,20.0,JZ].forEach(z=>box(T,botW,T,M.steel,XW,botW/2,z,roof));                     // posts in the partition wall
+  [37.53,40.6,43.6,46.6].forEach(z=>{const top=z<37.7?8.333:8.0;box(T,botB-top,T,M.steel,XB,top+(botB-top)/2,z,roof);});   // packers onto the bar frame
+  const CPZ=49.585,yt=beamBot(XB)+0.04;box(T,botB-8.0,T,M.steel,XB,8.0+(botB-8.0)/2,CPZ,roof);   // end bracket: packer on the corner post + 3/8" gusset plates
+  [-1,1].forEach(sd=>box(0.03,yt-7.72,1.3,M.steel,XB+sd*(T/2+0.015),(7.72+yt)/2,CPZ+0.05,roof));})();
 // black fascia to the canopy edge, as in the renderings
-(()=>{const y=beamBot(11.2)+T+0.06-0.35;box(0.2,0.8,50.25,M.black,11.2,y,25.125,roof);
-  const ys=beamBot(5.6)+T+0.06-0.35;const f=box(11.2,0.8,0.2,M.black,5.6,ys,50.25,roof);f.rotation.z=Math.atan(slope);})();
-// 6" PVC gutter along the west wall + 2 no. 4" downpipes
-function gutter(x,z0,z1){const g=new THREE.CylinderGeometry(0.25,0.25,z1-z0,16,1,true,0,Math.PI);const m=new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:0xf3f3f0,roughness:.5,side:THREE.DoubleSide}));
-  m.rotation.x=Math.PI/2;m.rotation.y=Math.PI;m.position.set(x,beamBot(0)+T-0.05,(z0+z1)/2);m.castShadow=true;roof.add(m);}
-gutter(0.28,10.1,50.25); gutter(3.28,0,8.6);
-[[0.25,24],[0.25,50]].forEach(([x,z])=>{const d=new THREE.Mesh(new THREE.CylinderGeometry(0.17,0.17,beamBot(0)+0.2,12),M.pvc);d.position.set(x,(beamBot(0)+0.2)/2,z);d.castShadow=true;roof.add(d);});
+// fascia: 4 mm black ACM (aluminium composite) routed-and-folded tray, 10" face with a 3" return underneath hiding the rafter ends, on 1"x1" aluminium cleats
+(()=>{const FH=10*IN,FM=new THREE.MeshStandardMaterial({color:0x141414,roughness:.45,metalness:.35}),top=x=>beamBot(x)+T+0.06-0.35+0.4,RT=3*IN;
+  const y=top(11.2)-FH/2;box(0.2,FH,50.25-RC_B,FM,11.2,y,(RC_B+50.25)/2,roof);
+  box(RT,0.03,50.25-RC_B,FM,11.1-RT/2,top(11.2)-FH+0.015,(RC_B+50.25)/2,roof);                       // bottom return, east run
+  for(let k=0;k<roofCurve.length-1;k++){const a=roofCurve[k],b=roofCurve[k+1],l=Math.hypot(b[0]-a[0],b[1]-a[1]),xm=(a[0]+b[0])/2;   // curved corner piece (test-bend; fallback 2 mm powder-coated aluminium)
+    const f=box(0.2,FH,l+0.02,FM,xm,top(xm)-FH/2,(a[1]+b[1])/2,roof);f.rotation.y=Math.atan2(b[0]-a[0],b[1]-a[1]);}
+  const f=box(11.2,FH,0.2,FM,5.6,top(5.6)-FH/2,50.25,roof);f.rotation.z=Math.atan(slope);
+  const r=box(11.2,0.03,RT,FM,5.6,top(5.6)-FH+0.015,50.15-RT/2,roof);r.rotation.z=Math.atan(slope);})();   // bottom return, south end
+// one seamless roll-formed 6" aluminium box gutter along the west roof edge, capped both ends, falling 4" end to end into one 6" square black ABS downpipe at the south end of the bar
+(()=>{const gp=[[3.28,0],[3.28,8.6],[0.28,10.1],[0.28,50.25]],GW=0.5,FALL=4*IN,top0=beamBot(0)+T-0.05;let tot=0;const L=[];for(let i=0;i<3;i++){L.push(Math.hypot(gp[i+1][0]-gp[i][0],gp[i+1][1]-gp[i][1]));tot+=L[i];}
+  const gm=new THREE.MeshStandardMaterial({color:0xd9dcdc,roughness:.4,metalness:.6,side:THREE.DoubleSide});let run=0;
+  for(let i=0;i<3;i++){const a=gp[i],b=gp[i+1],l=L[i],ang=Math.atan2(b[0]-a[0],b[1]-a[1]),y0=top0-FALL*run/tot,y1=top0-FALL*(run+l)/tot,ym=(y0+y1)/2,pitch=Math.atan2(y0-y1,l);
+    const seg=new THREE.Group();seg.position.set((a[0]+b[0])/2,ym-GW/2,(a[1]+b[1])/2);seg.rotation.order='YXZ';seg.rotation.y=ang;seg.rotation.x=pitch;roof.add(seg);
+    box(GW,0.03,l+0.02,gm,0,-GW/2,0,seg);box(0.03,GW,l+0.02,gm,-GW/2,0,0,seg);box(0.03,GW,l+0.02,gm,GW/2,0,0,seg);run+=l;}
+  box(GW,GW,0.03,gm,3.28,top0-GW/2,0.015,roof);box(GW,GW,0.03,gm,0.28,top0-FALL-GW/2,50.235,roof);          // end caps
+  const yb=top0-FALL-GW;const dp=box(0.5,yb,0.5,M.black,0.28,yb/2,49.95,roof);dp.castShadow=true;})();     // 6" square black ABS downpipe, the only one
 
 // ---------- Alucobond 'Amore' moiré panels, cut pattern traced from the supplied Panel A drawing ----------
 // front: brushed aluminium (master cut); back: anthracite, same cut turned 4.5 deg CW and offset; 2" apart
@@ -628,40 +667,122 @@ const matA=new THREE.MeshStandardMaterial({map:plateA.t,alphaTest:.5,side:THREE.
 const matB=new THREE.MeshStandardMaterial({map:plateB.t,alphaTest:.5,side:THREE.DoubleSide,metalness:.4,roughness:.5});
 const depthA=new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking,map:plateA.t,alphaTest:.5});
 const depthB=new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking,map:plateB.t,alphaTest:.5});
+// existing see-through fence (always shown): 2'-0" block base, steel posts, 2x2 top and bottom rails, 3/4"x3/4" steel pickets @ 5" up to the top of the cladding
+function fencePickets(group,len){const n=Math.floor((len-0.2)/(5/12)),geo=new THREE.BoxGeometry(0.0625,5.75,0.0625),im=new THREE.InstancedMesh(geo,M.steel,n),d=new THREE.Object3D();
+  for(let i=0;i<n;i++){d.position.set(0,2.167+5.75/2,-len/2+0.1+(i+0.5)*(len-0.2)/n);d.updateMatrix();im.setMatrixAt(i,d.matrix);}im.castShadow=true;group.add(im);
+  box(0.167,0.167,len,M.steel,0,2.083,0,group);box(0.167,0.167,len,M.steel,0,8.0,0,group);}   // 2x2 bottom and top rails
 function moirePanel(group,w,z){
   [[matA,depthA,0.09],[matB,depthB,-0.09]].forEach(([m,d,off])=>{
     const p=new THREE.Mesh(new THREE.PlaneGeometry(w,6),m);p.rotation.y=Math.PI/2;p.position.set(off,5,z);
     p.castShadow=true;p.customDepthMaterial=d;group.add(p);});}
 // ---------- perimeter wall: 2'-0" base + 16 no. 4'x6' moiré panels ----------
-const screen=new THREE.Group();scene.add(screen);
+const fence=new THREE.Group();scene.add(fence);   // existing fence: permanent
+const screen=new THREE.Group();scene.add(screen);const fencePlanters=new THREE.Group();scene.add(fencePlanters);   // slate planter + hedge on its own toggle
 (()=>{const L=72+11*IN, n=16;
   screen.position.set(17.2,0,34.8);screen.rotation.y=Math.atan2(-7.2,49);
-  box(0.67,2,L,M.render,0,1,0,screen);
-  box(1.0,3.0,L,M.slate,-0.835,1.5,0,screen);box(0.9,3.0,L-0.1,M.hedge,-0.835,4.5,0,screen);
+  const fg=new THREE.Group();fg.position.copy(screen.position);fg.rotation.y=screen.rotation.y;fence.add(fg);
+  box(0.67,2,L,M.render,0,1,0,fg);fencePickets(fg,L);
+  const sp=new THREE.Group();sp.position.copy(screen.position);sp.rotation.y=screen.rotation.y;fencePlanters.add(sp);
+  box(1.0,3.0,L-1.3,M.slate,-0.835,1.5,0.65,sp);box(0.9,3.0,L-1.4,M.hedge,-0.835,4.5,0.65,sp);   // planter stops at the first step of the north stairs
 
   const pitch=L/n;
   for(let i=0;i<n;i++){const z=-L/2+pitch*(i+0.5);
     moirePanel(screen,4,z);
-    box(0.3,6.2,0.2,M.steel,0,5.1,z-pitch/2,screen);}
-  box(0.3,6.2,0.2,M.steel,0,5.1,L/2,screen);
-  box(0.2,0.15,L,M.steel,0,8.05,0,screen);})();
+    box(0.3,6.2,0.2,M.steel,0,5.1,z-pitch/2,fg);}
+  box(0.3,6.2,0.2,M.steel,0,5.1,L/2,fg);})();
 // south fence: same 2'-0" base + CNC panels, from the end of the screen wall west to the building corner, then north to the chamfer
 const screenReturn=new THREE.Group();scene.add(screenReturn);
 function fenceRun(ax,az,bx,bz){const g=new THREE.Group();screenReturn.add(g);
   const len=Math.hypot(bx-ax,bz-az),n=Math.max(1,Math.round(len/4.557)),pitch=len/n;
   g.position.set((ax+bx)/2,0,(az+bz)/2);g.rotation.y=Math.atan2(bx-ax,bz-az);
-  box(0.67,2,len+0.67,M.render,0,1,0,g);
-  box(1.0,3.0,len,M.slate,-0.835,1.5,0,g);box(0.9,3.0,len-0.1,M.hedge,-0.835,4.5,0,g);
+  const fg=new THREE.Group();fg.position.copy(g.position);fg.rotation.y=g.rotation.y;fence.add(fg);
+  box(0.67,2,len+0.67,M.render,0,1,0,fg);fencePickets(fg,len);
+  const pg=new THREE.Group();pg.position.copy(g.position);pg.rotation.y=g.rotation.y;fencePlanters.add(pg);
+  box(1.0,3.0,len,M.slate,-0.835,1.5,0,pg);box(0.9,3.0,len-0.1,M.hedge,-0.835,4.5,0,pg);
 
   for(let i=0;i<n;i++){const z=-len/2+pitch*(i+0.5);
     moirePanel(g,Math.min(4,pitch-0.3),z);
-    box(0.3,6.2,0.2,M.steel,0,5.1,z-pitch/2,g);}
-  box(0.3,6.2,0.2,M.steel,0,5.1,len/2,g);box(0.2,0.15,len,M.steel,0,8.05,0,g);return n;}
+    box(0.3,6.2,0.2,M.steel,0,5.1,z-pitch/2,fg);}
+  box(0.3,6.2,0.2,M.steel,0,5.1,len/2,fg);return n;}
 (()=>{const L=72+11*IN, th=Math.atan2(-7.2,49);
   const ex=17.2+Math.sin(th)*L/2, ez=34.8+Math.cos(th)*L/2, wx=CH_B[0]-0.335;
   fenceRun(ex,ez,wx,ez); fenceRun(wx,ez,wx,CH_B[1]+0.3);})();
 
-// ---------- string lights: 4"x4"x12' posts on the fence line every 20 ft, zig-zag back to the building wall ----------
+// ---------- north entrance: curved upper-level extension of the club building (white) + curved stair from the deck up to the upper level (+10'-6") ----------
+// stair width = east face of the smoking-room partition out to the line of the fence planters' outer face (inside face of the screen wall): 12'-7"; 18 risers @ 7", 16 treads @ 11" on the walking line (1'-6" in from the inner edge) + a landing half way up
+const nStair=new THREE.Group();scene.add(nStair);
+let stairFloor=()=>0;   // floor height under a point on the north stairs (used by the walk-around arrows)
+const nStairTex=tileTex('#c2a684','#9a7f60',11,'90,70,45');nStairTex.repeat.set(1,2);
+const nStairTile=new THREE.MeshStandardMaterial({map:nStairTex,roughness:.35});   // light cream-brown tile, north stairs only
+const stairGlow=[];
+const stairLedMat=new THREE.MeshStandardMaterial({color:0xfff4dd,emissive:0xffd29a,emissiveIntensity:.4,roughness:.3});
+const stairLedGlow=(()=>{const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d');const gr=g.createRadialGradient(64,64,0,64,64,64);
+  gr.addColorStop(0,'rgba(255,214,150,1)');gr.addColorStop(0.15,'rgba(255,200,130,.6)');gr.addColorStop(1,'rgba(255,190,110,0)');g.fillStyle=gr;g.fillRect(0,0,128,128);
+  return new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c),transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending});})();
+(()=>{const XI=9.42,XO=21.98,W=XO-XI,RI=9.25,SC=[XI-RI,-2.75],RO=RI+W,G=11*IN,RH=10.5/18,RW=RI+1.5,dA=G/RW,NT=17,NS=3;
+  const P=(r,a)=>[SC[0]+r*Math.cos(a),SC[1]-r*Math.sin(a)];
+  const prism=(pts,h,mat,grp)=>{const s=new THREE.Shape(pts.map(p=>new THREE.Vector2(p[0],p[1])));const g=new THREE.ExtrudeGeometry(s,{depth:h,bevelEnabled:false,curveSegments:24});
+    g.rotateX(Math.PI/2);const m=new THREE.Mesh(g,mat);m.position.y=h;m.castShadow=m.receiveShadow=true;grp.add(m);return m;};
+  // tread edges are tucked 1" inside the building wall and 3" inside the side wall, so no two surfaces share a plane (that is what caused the streaking)
+  const TI=RI-0.1,TO=RO-0.25;
+  const sector=(a0,a1,n)=>{const p=[];for(let k=0;k<=n;k++)p.push(P(TI,a0+(a1-a0)*k/n));for(let k=n;k>=0;k--)p.push(P(TO,a0+(a1-a0)*k/n));return p;};
+  // curved extension of the club building, full height, same white as the building
+  const aEnd=Math.acos((2.33-SC[0])/RI);const ext=[[2.33,-0.67],[XI,-0.67],[XI,SC[1]]];
+  for(let k=1;k<=40;k++)ext.push(P(RI,aEnd*k/40));
+  prism(ext,15,M.club,club);
+  // 3 straight treads north off the deck, 5 curved treads, landing half way up (5'-3"), 8 curved treads, then the 18th riser up to the upper level
+  const PW=3, WT=0.5;const band=()=>{};   // (stepped wall pieces replaced by the smooth wall below)   // 6" solid wall on the open side, 3'-0" above the treads, white render like the 2'-0" perimeter wall
+  const outer=(a0,a1,n)=>{const p=[];for(let k=0;k<=n;k++)p.push(P(RO-WT,a0+(a1-a0)*k/n));for(let k=n;k>=0;k--)p.push(P(RO+0.02,a0+(a1-a0)*k/n));return p;};
+  const steps=[];let a=0;
+  for(let k=1;k<=NS;k++){const z0=-(k-1)*G,z1=-k*G;prism([[XI-0.1,z0],[XO-0.25,z0],[XO-0.25,z1],[XI-0.1,z1]],k*RH,nStairTile,nStair);band([[XO-WT,z0],[XO+0.02,z0],[XO+0.02,z1],[XO-WT,z1]],k*RH);steps.push([null,z0,z1,k*RH]);}
+  const arc=(a0,a1,h,n)=>{prism(sector(a0,a1,n),h,nStairTile,nStair);band(outer(a0,a1,n),h);steps.push([a0,a1,h]);};
+  for(let k=NS+1;k<=8;k++){arc(a,a+dA,k*RH,6);a+=dA;}
+  const aLand=Math.PI/2-a-8*dA;arc(a,a+aLand,9*RH,16);a+=aLand;            // landing in the middle of the stair
+  for(let k=10;k<=17;k++){arc(a,a+dA,k*RH,6);a+=dA;}
+  const TS=1.5;prism([[SC[0]+0.02,SC[1]-TI],[SC[0]+0.02,SC[1]-TO],[SC[0]-TS+0.02,SC[1]-TO],[SC[0]-TS+0.02,SC[1]-TI]],18*RH,nStairTile,nStair);   // top step at the upper level (+10'-6")
+  band([[SC[0],SC[1]-RO+WT],[SC[0],SC[1]-RO-0.02],[SC[0]-TS,SC[1]-RO-0.02],[SC[0]-TS,SC[1]-RO+WT]],18*RH);
+  // 1" round LED wall lights, 1'-0" above the treads, every 5 ft along both walls of the stair (white side wall + building wall); glow at night
+  const hAt=(x,z)=>{if(z>=SC[1]-1e-6){const k=Math.min(NS,Math.max(1,Math.ceil(-z/G-1e-6)));return k*RH;}
+    const a=Math.atan2(-(z-SC[1]),x-SC[0]);for(const st of steps){if(st[0]!==null&&a>=st[0]-1e-6&&a<=st[1]+1e-6)return st[2];}return 18*RH;};
+  const ledGeo=new THREE.CylinderGeometry(1/24,1/24,0.04,16);
+  const lineUp=(xs,r,topLen,inward)=>{const L1=-SC[1],L2=r*Math.PI/2,tot=L1+L2+topLen;
+    for(let s=2.5;s<tot;s+=5){let x,z,nx,nz;
+      if(s<=L1){x=xs;z=-s;nx=inward;nz=0;}
+      else if(s<=L1+L2){const a=(s-L1)/r,q=P(r,a);x=q[0];z=q[1];const ux=Math.cos(a),uz=-Math.sin(a);nx=ux*inward;nz=uz*inward;}
+      else{x=SC[0]-(s-L1-L2);z=SC[1]-r;nx=0;nz=-inward;}
+      const y=hAt(x+nx*0.6,z+nz*0.6)+1.0;
+      const m=new THREE.Mesh(ledGeo,stairLedMat);m.position.set(x+nx*0.02,y,z+nz*0.02);m.lookAt(x+nx,y,z+nz);m.rotateX(Math.PI/2);nStair.add(m);
+      const h=new THREE.Mesh(new THREE.PlaneGeometry(2.2,2.2),stairLedGlow);h.position.set(x+nx*0.012,y,z+nz*0.012);h.lookAt(x+nx,y,z+nz);nStair.add(h);}};
+  stairFloor=(x,z)=>{if(!nStair.visible)return 0;const r=Math.hypot(x-SC[0],z-SC[1]);
+    if(z<=0&&z>=SC[1]&&x>=XI&&x<=XO)return hAt(x,z);
+    if(z<SC[1]&&x>=SC[0]&&r>=RI&&r<=RO)return hAt(x,z);
+    if(x<SC[0]&&x>=SC[0]-1.5&&z<=SC[1]-RI&&z>=SC[1]-RO)return 18*RH;return 0;};
+  lineUp(XI,RI,1.5,1);                 // inner side: building wall, lights face out into the stair
+  lineUp(XO-WT,RO-WT,1.5,-1);          // outer side: inside face of the white side wall
+  // side wall: one smooth clean top line, 3'-0" above the nosings, rising with each flight and level over the landing
+  {const rw=RO-WT/2,L1=-SC[1],arcL=a=>L1+rw*a,aEndS=arcL(Math.PI/2);
+   const knots=[[0,RH]];for(let k=2;k<=NS;k++)knots.push([(k-1)*G,k*RH]);
+   for(let k=NS+1;k<=8;k++)knots.push([arcL((k-NS-1)*dA),k*RH]);
+   const aL0=5*dA,aL1=aL0+(Math.PI/2-13*dA);knots.push([arcL(aL0),9*RH],[arcL(aL1),9*RH]);
+   for(let k=10;k<=17;k++)knots.push([arcL(aL1+(k-10)*dA),k*RH]);
+   knots.push([aEndS,18*RH],[aEndS+TS,18*RH]);
+   const hS=s=>{for(let i=0;i<knots.length-1;i++){const [s0,h0]=knots[i],[s1,h1]=knots[i+1];if(s<=s1+1e-9)return h0+(h1-h0)*Math.max(0,s-s0)/((s1-s0)||1);}return knots[knots.length-1][1];};
+   const at=s=>{if(s<=L1)return [XO-WT/2,-s,1,0];if(s<=aEndS){const a=(s-L1)/rw;return [SC[0]+rw*Math.cos(a),SC[1]-rw*Math.sin(a),Math.cos(a),-Math.sin(a)];}return [SC[0]-(s-aEndS),SC[1]-rw,0,-1];};
+   const tot=aEndS+TS,S=[];for(let i=0;i<=200;i++)S.push(tot*i/200);knots.forEach(k=>S.push(k[0]));S.sort((a,b)=>a-b);
+   const ss=S.filter((v,i)=>i===0||v-S[i-1]>1e-4);
+   const wm=new THREE.MeshStandardMaterial({color:0xf1eee8,roughness:.9,side:THREE.DoubleSide});
+   const strip=(fA,fB)=>{const pos=[],idx=[];ss.forEach(s=>{pos.push(...fA(s),...fB(s));});
+     for(let i=0;i<ss.length-1;i++){const a=i*2,b=a+2;idx.push(a,b,a+1,a+1,b,b+1);}
+     const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();
+     const m=new THREE.Mesh(g,wm);m.castShadow=m.receiveShadow=true;nStair.add(m);};
+   const P3=(s,o,y)=>{const [x,z,nx,nz]=at(s);return [x+nx*o,y,z+nz*o];};
+   strip(s=>P3(s,WT/2,0),s=>P3(s,WT/2,hS(s)+PW));            // outer face
+   strip(s=>P3(s,WT/2,hS(s)+PW),s=>P3(s,-WT/2,hS(s)+PW));    // top
+   strip(s=>P3(s,-WT/2,hS(s)+PW),s=>P3(s,-WT/2,0));          // inner face
+   [0,tot].forEach(s=>{const a=P3(s,WT/2,0),b=P3(s,-WT/2,0),y=hS(s)+PW;const g=new THREE.BufferGeometry();
+     g.setAttribute('position',new THREE.Float32BufferAttribute([...a,...b,b[0],y,b[2],a[0],y,a[2]],3));g.setIndex([0,1,2,0,2,3]);g.computeVertexNormals();nStair.add(new THREE.Mesh(g,wm));});}
+})();
+// ---------- string lights: 4"x4"x12' posts on the fence line every 20 ft; even triangles: post - club building wall (opposite the middle of the span) - next post ----------
 const festoon=new THREE.Group();scene.add(festoon);
 const bulbMat=new THREE.MeshStandardMaterial({color:0xfff1d6,emissive:0xffc76b,emissiveIntensity:.6,roughness:.4});
 const nightLights=[];
@@ -670,22 +791,23 @@ const nightLights=[];
   const path=[n,so,[wx,so[1]],[wx,CH_B[1]+0.3]];
   const segs=[];let tot=0;for(let i=0;i<3;i++){const l=Math.hypot(path[i+1][0]-path[i][0],path[i+1][1]-path[i][1]);segs.push([path[i],path[i+1],l]);tot+=l;}
   const at=d=>{for(const [a,b,l] of segs){if(d<=l){const t=d/l;return [a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t];}d-=l;}return path[3];};
-  const ds=[];for(let d=0;d<=tot;d+=20)ds.push(d);if(tot-ds[ds.length-1]>0.5)ds.push(tot);
+  const ds=[0,20,40,60,80,100];   // 6 posts @ 20'-0": up the east fence and along the south fence to the south-west corner
   const posts=ds.map(at);
   const wall=[[3,0],[3,8.6],[0,10.1],[0,CH_A[1]],CH_B];
   const proj=p=>{let best=null;for(let i=0;i<wall.length-1;i++){const a=wall[i],b=wall[i+1],dx=b[0]-a[0],dz=b[1]-a[1];
       const t=Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dz)/(dx*dx+dz*dz)));const q=[a[0]+dx*t,a[1]+dz*t];const d=Math.hypot(p[0]-q[0],p[1]-q[1]);
       if(!best||d<best[0])best=[d,q];}return best[1];};
-  const PH=12, WY=11;
-  posts.forEach(p=>{box(4*IN,PH,4*IN,M.black,p[0],PH/2,p[1],festoon);box(0.5,0.1,0.5,M.black,p[0],PH+0.05,p[1],festoon);});
+  const PH=12, PHS=[13,13,13,12,12,12], WYS=[13,13,13,13,12.5];   // the 3 posts north of the sails are 13 ft so the lights clear the fascia sign;   // eye bolts in the club building wall, above the planters and below the sails
+  posts.forEach((p,k)=>{const h=PHS[k];box(4*IN,h,4*IN,M.black,p[0],h/2,p[1],festoon);box(0.5,0.1,0.5,M.black,p[0],h+0.05,p[1],festoon);});
   const bulbGeo=new THREE.SphereGeometry(0.48,16,12);   // 4x the original bulb size
   const wire=new THREE.LineBasicMaterial({color:0x111111});
-  function strand(a,ay,b,by){const len=Math.hypot(b[0]-a[0],b[1]-a[1]),sag=Math.min(1.6,len*0.06),N=Math.max(2,Math.round(len/2));
+  function strand(a,ay,b,by){const len=Math.hypot(b[0]-a[0],b[1]-a[1]),sag=Math.min(1.0,len*0.045),N=Math.max(2,Math.round(len/2));
     const pts=[];for(let i=0;i<=40;i++){const t=i/40;pts.push(new THREE.Vector3(a[0]+(b[0]-a[0])*t,ay+(by-ay)*t-sag*4*t*(1-t),a[1]+(b[1]-a[1])*t));}
     festoon.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),wire));
-    for(let i=1;i<N;i++){const t=i/N;const m=new THREE.Mesh(bulbGeo,bulbMat);m.position.set(a[0]+(b[0]-a[0])*t,ay+(by-ay)*t-sag*4*t*(1-t)-0.56,a[1]+(b[1]-a[1])*t);festoon.add(m);}}
-  for(let i=0;i<posts.length-1;i++){const a=posts[i],b=posts[i+1];const w=i===2?[0,34]:proj([(a[0]+b[0])/2,(a[1]+b[1])/2]);   // span over the bar re-anchored at 36'-0" to clear the fascia sign
-    strand(a,PH-0.2,w,WY);strand(i===2?[-1.5,52.34]:w,WY,b,PH-0.2);   // span over the bar: second half fixes to the chamfered wall to clear the L sign
+    for(let i=1;i<N;i++){const t=i/N,x=a[0]+(b[0]-a[0])*t,y=ay+(by-ay)*t-sag*4*t*(1-t)-0.56,z=a[1]+(b[1]-a[1])*t;
+      const m=new THREE.Mesh(bulbGeo,bulbMat);m.position.set(x,y,z);festoon.add(m);}}
+  for(let i=0;i<posts.length-1;i++){const a=posts[i],b=posts[i+1],m=[(a[0]+b[0])/2,(a[1]+b[1])/2],q=proj(m),dx=q[0]-m[0],dz=q[1]-m[1],dl=Math.hypot(dx,dz),w=[q[0]+dx/dl*0.6,q[1]+dz/dl*0.6];
+    strand(a,PHS[i]-0.2,w,WYS[i]);strand(w,WYS[i],b,PHS[i+1]-0.2);
     const l=new THREE.PointLight(0xffc27a,0,26,2);l.position.set((a[0]+w[0])/2,10,(a[1]+w[1])/2);festoon.add(l);nightLights.push(l);}
 })();
 // night mode: dark sky, low sun, glowing bulbs
@@ -696,7 +818,7 @@ function setNight(on){night=on;
   bulbMat.emissiveIntensity=on?3.2:.6;nightLights.forEach(l=>l.intensity=on?1.4:0);
   renderer.toneMappingExposure=on?1.25:1.05;
   lamps.forEach(l=>l.visible=on);
-  jmMat.emissiveIntensity=on?1.8:0;jmGlow.forEach(l=>l.intensity=on?1.2:0);jmHalo.forEach(m=>m.opacity=on?1:0);}   // sign lighting only at night
+  jmMat.emissiveIntensity=on?1.8:0;jmGlow.forEach(l=>l.intensity=on?1.2:0);jmHalo.forEach(m=>m.opacity=on?1:0);stairLedMat.emissiveIntensity=on?2:.4;stairLedGlow.opacity=on?.4:0;}   // stair wall lights only, kept soft   // sign lighting only at night
 document.getElementById('t-night').addEventListener('click',e=>{setNight(!night);e.currentTarget.setAttribute('aria-pressed',night);});
 
 // ---------- tulip table lamps: smooth pewter base and arched stem, glowing tulip shade; shown only in Night mode ----------
@@ -728,7 +850,8 @@ function lamp(parent,y){const g=new THREE.Group();g.position.y=y;g.visible=false
   lamps.push(g);return g;}
 // ---------- furniture layout: 6 two-seat tables along the north fence + 5 four-seat tables in the south lounge (4 ft walkway kept clear) ----------
 const furn=new THREE.Group();scene.add(furn);
-function chair(x,z,face){const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=face;furn.add(g);
+const seats=[],slotSeats=[];
+function chair(x,z,face){seats.push([x,z,face]);const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=face;furn.add(g);
   box(1.4,0.12,1.4,M.barWood||M.hdf,0,1.5,0,g);
   [[-0.6,-0.6],[0.6,-0.6],[-0.6,0.6],[0.6,0.6]].forEach(([a,b])=>box(0.07,1.5,0.07,M.black,a,0.75,b,g));
   box(1.4,1.3,0.08,M.black,0,2.25,0.66,g);}               // back on the side away from the table
@@ -766,7 +889,7 @@ function sail(P){                                             // P: three anchor
   const m=new THREE.Mesh(g,sailMat);m.castShadow=true;m.receiveShadow=true;sails.add(m);
   K.forEach((k,n)=>{const r=new THREE.Mesh(new THREE.TorusGeometry(0.12,0.025,8,16),ringMat);r.position.copy(k);r.lookAt(A[n]);sails.add(r);
     sails.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([k,A[n]]),cableMat));});}
-// anchors sit above the string lights: club building wall at 13'-6" to 14'-2", posts raised to 14 ft (checked: at least 1'-4" over every light wire)
+// anchors sit above the string lights: club building wall at 13'-6" to 14'-2", posts raised to 14 ft (checked: at least 1'-0" over every light wire)
 box(4*IN,14,4*IN,M.black,11.6,7,70.3,sails);                // new 4"x4" post at the south-east corner, 14 ft
 box(4*IN,2.2,4*IN,M.black,13.78,13.1,58.09,sails);          // east string-light post extended from 12 ft to 14'-2"
 box(4*IN,1.4,4*IN,M.black,-15.18,12.7,70.87,sails);         // south-west string-light post extended to 13'-5"
@@ -793,17 +916,68 @@ function slot(wx,z,face,seed){                              // wx: wall face x; 
   box(0.9,0.12,2.4,trimMat,face*0.55,3.05,0,g);              // button deck
   box(1.2,0.6,2.4,new THREE.MeshStandardMaterial({color:0x2a1a55,emissive:0x7a4dff,emissiveIntensity:.7}),-face*0.3,5.9,0,g);   // lit topper
   // stool in front (27" seat)
-  const st=new THREE.Group();st.position.set(wx+face*(2.0+0.67),0,z);slots.add(st);
+  const st=new THREE.Group();st.position.set(wx+face*(2.0+0.67),0,z);slots.add(st);slotSeats.push([wx+face*(2.0+0.67),z,face]);
   const seat=new THREE.Mesh(new THREE.CylinderGeometry(0.62,0.62,0.18,24),new THREE.MeshStandardMaterial({color:0x5a1620,roughness:.6}));seat.position.y=2.25;st.add(seat);
   box(0.12,2.2,0.12,M.black,0,1.1,0,st);box(1.0,0.06,1.0,M.black,0,0.03,0,st);}
 [7.625,10.375,13.125,15.875,18.625,21.375].forEach((z,i)=>slot(9.09,z,-1,30+i));      // east wall: bank of 6, pushed south to 7" from the cross wall; 3'-2" clear inside the door
 [12.375,15.125,17.875,20.625].forEach((z,i)=>slot(0,z,1,50+i));                      // west wall (existing block wall)
 
+// ---------- "Busy" view: a full house, animated - guests talking and gesturing, two bartenders working the bar, four waiters with trays (off by default) ----------
+const people=new THREE.Group();scene.add(people);people.visible=false;
+const crowd=[];
+(()=>{const r=rnd(77),shirts=[0xc0392b,0x2e86c1,0xf1c40f,0x27ae60,0x8e44ad,0xecf0f1,0x1c1c1c,0xe67e22,0x16a085,0xd35400,0x5d6d7e,0xff6f91],skins=[0x5a3825,0x7a4a2c,0x8d5a3b,0xa86b45,0xc68863,0xe0ac69],pants=[0x1f2a44,0x2b2b2b,0x4a3b2a,0x34495e];
+  const mats={};const mat=c=>mats[c]||(mats[c]=new THREE.MeshStandardMaterial({color:c,roughness:.8}));const pick=a=>a[(r()*a.length)|0];
+  const headGeo=new THREE.SphereGeometry(0.36,14,10);
+  const part=(g,w,h,d,m,x,y,z,rx)=>{const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);b.position.set(x,y,z);if(rx)b.rotation.x=rx;b.castShadow=true;g.add(b);return b;};
+  const pivot=(p,x,y,z)=>{const q=new THREE.Group();q.position.set(x,y,z);p.add(q);return q;};
+  const arm=(g,side,y,sh,sk)=>{const s=pivot(g,side*0.73,y,0);part(s,0.3,1.0,0.32,sh,0,-0.5,0);const e=pivot(s,0,-1.0,0);part(e,0.28,0.28,1.0,sk,0,0,0.45);return [s,e];};
+  const head=(g,y,z,sk)=>{const h=new THREE.Mesh(headGeo,sk);h.position.set(0,y,z);h.castShadow=true;g.add(h);return h;};
+  // seated guest (local +z = facing direction)
+  function seated(x,z,yaw,h){const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=yaw;people.add(g);
+    const sk=mat(pick(skins)),sh=mat(pick(shirts)),pa=mat(pick(pants));
+    part(g,0.42,0.42,1.45,pa,-0.27,h+0.21,0.45);part(g,0.42,0.42,1.45,pa,0.27,h+0.21,0.45);
+    const sl=Math.min(1.6,h);part(g,0.4,sl,0.42,pa,-0.27,h-sl/2+0.05,1.0);part(g,0.4,sl,0.42,pa,0.27,h-sl/2+0.05,1.0);
+    part(g,1.15,1.9,0.62,sh,0,h+1.35,-0.1,-0.06);const hd=head(g,h+2.62,-0.08,sk);
+    const [ls,le]=arm(g,-1,h+2.2,sh,sk),[rs,re]=arm(g,1,h+2.2,sh,sk);
+    crowd.push({k:'sit',hd,hy:h+2.62,ls,le,rs,re,ph:r()*20,sp:0.7+r()*0.7,talk:r()<0.65,lefty:r()<0.4});}
+  // standing figure: legs pivot at the hip so they can walk
+  function stander(shirt,tray){const g=new THREE.Group();people.add(g);const sk=mat(pick(skins)),sh=mat(shirt),pa=mat(pick(pants));
+    const hl=pivot(g,-0.27,2.8,0),hr=pivot(g,0.27,2.8,0);part(hl,0.42,2.8,0.45,pa,0,-1.4,0);part(hr,0.42,2.8,0.45,pa,0,-1.4,0);
+    part(g,1.15,2.0,0.62,sh,0,3.8,0);const hd=head(g,5.2,0,sk);
+    const [ls,le]=arm(g,-1,4.7,sh,sk),[rs,re]=arm(g,1,4.7,sh,sk);
+    if(tray){ls.rotation.x=-0.35;le.rotation.x=-0.75;const t=new THREE.Mesh(new THREE.CylinderGeometry(0.75,0.75,0.05,24),mat(0x9aa0a6));t.position.set(0,0.05,0.95);le.add(t);
+      [[-0.3,0.1],[0.25,-0.15],[0.1,0.35]].forEach(([a,b])=>{const gl=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.08,0.4,10),mat(pick([0xe8c46a,0xb5162b,0xf3efe2])));gl.position.set(a,0.27,0.95+b);le.add(gl);});}
+    return {g,hl,hr,ls,le,rs,re,hd};}
+  seats.forEach(([x,z,face])=>seated(x,z,face+Math.PI,1.56));                                       // every table chair
+  for(let i=0;i<5;i++)seated(10.3,BZ0+1.3+i*2.35,-Math.PI/2,2.63);                                  // every bar stool
+  slotSeats.forEach(([x,z,face])=>seated(x,z,-face*Math.PI/2,2.34));                                 // every slot-machine stool
+  // two bartenders in black working the aisle behind the bar (clear of the wine cooler)
+  [[0,44.5,4.1],[Math.PI,44.5,4.1]].forEach(([ph,mid,amp])=>{const s=stander(0x111111,false);s.g.position.set(4.1,0,mid);crowd.push(Object.assign(s,{k:'bar',ph,mid,amp}));});
+  // four waiters with trays, walking their sections back and forth
+  const routes=[[[14.5,3],[14.5,32]],[[12.6,33],[12.6,50.6]],[[12,52.6],[11.4,61.2],[-11,61.2]],[[6,52.6],[-3,55.6],[-3.75,61],[-3.75,68.4]]];
+  routes.forEach((pts,i)=>{const segs=[];let L=0;for(let j=0;j<pts.length-1;j++){const l=Math.hypot(pts[j+1][0]-pts[j][0],pts[j+1][1]-pts[j][1]);segs.push([pts[j],pts[j+1],l]);L+=l;}
+    const s=stander([0xffffff,0x111111,0xffffff,0x111111][i],true);crowd.push(Object.assign(s,{k:'walk',segs,L,off:r()*L*2,sp:2.6+r()*0.6}));});
+})();
+function updatePeople(T){
+  for(const o of crowd){
+    if(o.k==='sit'){const t=T*o.sp+o.ph;o.hd.rotation.y=0.45*Math.sin(t*0.45);
+      if(o.talk){const a=o.lefty?o.ls:o.rs,e=o.lefty?o.le:o.re;a.rotation.x=-(0.15+0.45*Math.max(0,Math.sin(t*1.6)));e.rotation.x=-0.35*Math.max(0,Math.sin(t*2.4+1));
+        (o.lefty?o.rs:o.ls).rotation.x=-0.08-0.06*Math.sin(t*0.8);o.hd.position.y=o.hy+0.03*Math.sin(t*7);}
+      else{o.ls.rotation.x=-0.05-0.05*Math.sin(t*0.7);o.rs.rotation.x=-0.05-0.05*Math.sin(t*0.7+1);}}
+    else if(o.k==='bar'){const w=0.32,z=o.mid+o.amp*Math.sin(T*w+o.ph),v=o.amp*w*Math.cos(T*w+o.ph);o.g.position.z=z;
+      if(Math.abs(v)>0.45){o.g.rotation.y=v>0?0:Math.PI;const p=z*2.3;o.hl.rotation.x=0.5*Math.sin(p);o.hr.rotation.x=-0.5*Math.sin(p);o.ls.rotation.x=-0.4*Math.sin(p);o.rs.rotation.x=0.4*Math.sin(p);o.le.rotation.x=o.re.rotation.x=0;}
+      else{o.g.rotation.y=Math.PI/2;o.hl.rotation.x=o.hr.rotation.x=0;const k=Math.sin(T*15);o.ls.rotation.x=-0.7-0.15*k;o.rs.rotation.x=-0.7+0.15*k;o.le.rotation.x=-0.9-0.2*k;o.re.rotation.x=-0.9+0.2*k;}}   // making drinks
+    else{let u=(T*o.sp+o.off)%(2*o.L);const back=u>o.L;let d=back?2*o.L-u:u;
+      for(const [a,b,l] of o.segs){if(d<=l||b===o.segs[o.segs.length-1][1]){const f=Math.min(1,d/l);o.g.position.set(a[0]+(b[0]-a[0])*f,0,a[1]+(b[1]-a[1])*f);
+        const dx=(b[0]-a[0])*(back?-1:1),dz=(b[1]-a[1])*(back?-1:1);o.g.rotation.y=Math.atan2(dx,dz);break;}d-=l;}
+      const p=u*2.3;o.hl.rotation.x=0.5*Math.sin(p);o.hr.rotation.x=-0.5*Math.sin(p);o.rs.rotation.x=0.4*Math.sin(p);o.hd.rotation.y=0.25*Math.sin(u*0.3);}}}
+
 // ---------- camera views ----------
 const views={
   overview:{p:[55,42,92],t:[2,4,38]},
   street:{p:[36,5.4,52],t:[8,4.5,30]},
-  walk:{p:[15.5,5.4,-6],t:[14.5,5.0,10],fov:65,head:true,tour:true},
+  walk:{p:[12.46,10.65,-12.24],t:[16,5,6],fov:65,head:true,tour:true},
+  roam:{p:[15.5,5.4,6],t:[15.42,5.38,6.6],fov:70,head:true,roam:true},
   bar:{p:[15,6,30],t:[3,3,43]},
   bartender:{p:[1.7,5.0,43.75],t:[2.3,4.93,43.75],fov:75,head:true,scan:true},
   // corner / fence-line viewpoints at eye height: drag to turn and look around the whole space
@@ -812,22 +986,25 @@ const views={
   fenceN:{p:[19.91,5.4,2.5],t:[19.67,5.38,3.05],fov:75,head:true},
   fenceM:{p:[15.87,5.4,30],t:[15.48,5.38,30.45],fov:75,head:true},
   fenceS:{p:[10.35,5.4,67.6],t:[9.98,5.39,67.13],fov:75,head:true},
+  nstair:{p:[34,16,10],t:[8,5,-9]},
   tv:{p:[4.4,5.5,70.0],t:[-7.6,6.6,58.44],fov:60,low:true},
   wormN:{p:[19.6,0.5,2.0],t:[9,12,28],fov:80,low:true},
   wormS:{p:[10.2,0.5,68.9],t:[3,12,40],fov:80,low:true},
   roof:{p:[24,24,6],t:[4,8,30]},
 };
 let anim=null, scan=null;
-// customer walkthrough: in from the street down the two-seater strip, up to the bar, a look down the stairs, then round to the TV wall
-const TOUR=[[0,[15.5,5.4,-6],[14.5,5.0,10]],[5,[15.0,5.4,4],[13.5,5.0,20]],[10,[13.6,5.4,16],[13,5.0,32]],[15,[13.2,5.4,28],[10,4.6,40]],
-  [20,[13.0,5.4,37],[8,3.8,42]],[24,[12.6,5.4,41],[4,3.6,44]],[29,[13.4,5.4,40.2],[5.5,-0.8,33.8]],[33,[13.6,5.4,39.8],[5.5,-0.8,33.8]],
-  [38,[12.3,5.4,47],[0,5.5,62]],[43,[9.5,5.4,52.5],[-7.6,6.4,58.4]],[48,[6.5,5.4,53.8],[-7.6,6.4,58.44]]];
+// customer walkthrough: starts on the middle landing of the north stairs, walks down onto the deck, down the two-seater strip, up to the bar, a look down the stairs, then round to the TV wall
+const TOUR=[[0,[12.46,10.65,-12.24],[16,5,6]],[2.5,[12.9,10.65,-11.6],[15.5,5,8]],[6,[15.0,9.5,-7.3],[15.5,5,10]],[9,[15.7,6.6,-1.4],[15,5,14]],
+  [12,[15.0,5.4,4],[13.5,5.0,20]],[17,[13.6,5.4,16],[13,5.0,32]],[22,[13.2,5.4,28],[10,4.6,40]],
+  [27,[13.0,5.4,37],[8,3.8,42]],[31,[12.6,5.4,41],[4,3.6,44]],[36,[13.4,5.4,40.2],[5.5,-0.8,33.8]],[40,[13.6,5.4,39.8],[5.5,-0.8,33.8]],
+  [45,[12.3,5.4,47],[0,5.5,62]],[50,[9.5,5.4,52.5],[-7.6,6.4,58.4]],[55,[6.5,5.4,53.8],[-7.6,6.4,58.44]]];
 const tourP=new THREE.CatmullRomCurve3(TOUR.map(k=>new THREE.Vector3(...k[1])),false,'catmullrom',0.5),tourT=new THREE.CatmullRomCurve3(TOUR.map(k=>new THREE.Vector3(...k[2])),false,'catmullrom',0.5);
 let tour=null;
 function tourStep(now){const T=(now-tour.s)/1000,n=TOUR.length;if(T>=TOUR[n-1][0]){tour=null;return;}
   let i=0;while(i<n-2&&T>TOUR[i+1][0])i++;const f=(T-TOUR[i][0])/(TOUR[i+1][0]-TOUR[i][0]),u=(i+f)/(n-1);
   camera.position.copy(tourP.getPoint(u));controls.target.copy(tourT.getPoint(u));}
-function go(name){const v=views[name];scan=null;tour=null;controls.maxPolarAngle=(v.head||v.low)?Math.PI*0.97:Math.PI*0.495;   // low views may look up
+function go(name){const v=views[name];scan=null;tour=null;roam=!!v.roam;document.getElementById('dpad').hidden=!roam;
+  document.getElementById('hint').hidden=false;document.getElementById('hint').textContent=roam?'Hold the arrows to walk · drag to look around':'Drag to orbit · pinch to zoom';controls.maxPolarAngle=(v.head||v.low)?Math.PI*0.97:Math.PI*0.495;   // low views may look up
 const p0=camera.position.clone(),t0=controls.target.clone();
   const p1=new THREE.Vector3(...v.p),t1=new THREE.Vector3(...v.t);
   document.querySelectorAll('[id^="v-"]').forEach(b=>b.setAttribute('aria-pressed',b.id==='v-'+name));
@@ -840,14 +1017,26 @@ camera.position.set(...views.overview.p);controls.target.set(...views.overview.t
 
 function toggle(id,obj){const list=[].concat(obj);const b=document.getElementById(id);b.addEventListener('click',()=>{const v=!list[0].visible;list.forEach(o=>o.visible=v);b.setAttribute('aria-pressed',v);});}
 document.getElementById('t-shut').addEventListener('click',e=>{shutGoal=shutGoal?0:1;e.currentTarget.setAttribute('aria-pressed',!!shutGoal);});
-toggle('t-roof',roof);toggle('t-wall',[screen,screenReturn]);toggle('t-club',club);toggle('t-string',festoon);toggle('t-furn',furn);toggle('t-sails',sails);toggle('t-slots',slots);toggle('t-tv',tvs);
+toggle('t-roof',roof);toggle('t-wall',[screen,screenReturn]);toggle('t-fplant',fencePlanters);toggle('t-busy',people);document.getElementById('t-signs').addEventListener('click',e=>{setSigns(!signs.visible);e.currentTarget.setAttribute('aria-pressed',signs.visible);});toggle('t-nstair',nStair);toggle('t-club',club);toggle('t-string',festoon);toggle('t-furn',furn);toggle('t-sails',sails);toggle('t-slots',slots);toggle('t-tv',tvs);
 canvas.addEventListener('pointerdown',()=>{document.getElementById('hint').hidden=true;},{once:true});
 canvas.addEventListener('pointerdown',()=>{scan=null;tour=null;});
 
 function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
 new ResizeObserver(resize).observe(stage);resize();
 
-function loop(now){requestAnimationFrame(loop);updateTVs(now||0);
+// walk-around: hold an arrow to move at eye height (5'-5" above the floor, rising on the north stairs); drag to look around 360 degrees
+let roam=false,lastT=0;const held={f:0,b:0,l:0,r:0};
+document.querySelectorAll('#dpad button').forEach(b=>{const d=b.dataset.d;
+  const on=e=>{e.preventDefault();held[d]=1;b.classList.add('on');tour=null;scan=null;anim=null;try{b.setPointerCapture(e.pointerId);}catch(_){}};
+  const off=()=>{held[d]=0;b.classList.remove('on');};
+  b.addEventListener('pointerdown',on);['pointerup','pointercancel','lostpointercapture'].forEach(t=>b.addEventListener(t,off));b.addEventListener('contextmenu',e=>e.preventDefault());});
+const _f=new THREE.Vector3(),_s=new THREE.Vector3();
+function walkStep(dt){if(!roam||anim)return;const fw=held.f-held.b,st=held.r-held.l;if(!fw&&!st)return;
+  _f.subVectors(controls.target,camera.position);_f.y=0;if(_f.lengthSq()<1e-6)return;_f.normalize();_s.set(-_f.z,0,_f.x);
+  const sp=5*dt;const dx=(_f.x*fw+_s.x*st)*sp,dz=(_f.z*fw+_s.z*st)*sp;
+  const nx=camera.position.x+dx,nz=camera.position.z+dz,ny=stairFloor(nx,nz)+5.4,dy=(ny-camera.position.y)*Math.min(1,dt*10);
+  camera.position.x+=dx;camera.position.z+=dz;camera.position.y+=dy;controls.target.x+=dx;controls.target.z+=dz;controls.target.y+=dy;}
+function loop(now){requestAnimationFrame(loop);updateTVs(now||0);const dt=Math.min(0.05,Math.max(0,((now||0)-lastT)/1000));lastT=now||0;walkStep(dt);if(people.visible)updatePeople((now||0)/1000);
   if(shutT!==shutGoal){setShutter(shutGoal>shutT?Math.min(shutGoal,shutT+0.012):Math.max(shutGoal,shutT-0.012));}
   if(anim){let k=Math.min(1,(now-anim.s)/anim.d);k=k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
     camera.position.lerpVectors(anim.p0,anim.p1,k);controls.target.lerpVectors(anim.t0,anim.t1,k);if(k>=1){if(anim.scan)scan={eye:anim.p1.clone(),s:now};if(anim.tour)tour={s:now};anim=null;}}
